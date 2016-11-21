@@ -1,0 +1,4 @@
+org/jboss/weld/examples/numberguess/Game.class
+org/jboss/weld/examples/numberguess/Generator.class
+org/jboss/weld/examples/numberguess/Random.class
+org/jboss/weld/examples/numberguess/MaxNumber.class

@@ -1,0 +1,171 @@
+一、前言
+
+前段时间我们学习了JDBC的使用，目前我们使用JDBC仅仅是局限于本地访问，那么，必然会有已下几种情况:
+
+a.一个客户端多次访问同一个数据库；
+
+b.多个客户端访问同一个数据库；
+
+c.多个客户端同时访问同一个数据库（即并发访问）；
+
+那么问题来了：我们都知道使用JDBC每次访问数据库就需要重新连接一次，
+
+Connection conn = null;
+
+conn = DriverManager.getConnection(url,"root","123");
+
+访问完毕后需要关闭（断开）连接，
+
+conn.close();
+
+每次进行这样的连接就涉及到资源的分配和释放问题，因此，频繁的建立、关闭连接，会极大的减低系统的性能。为了解决这个问题，就需要知道资源共享的相关知识了。对于共享资源，有一个很著名的设计模式：资源池(resource pool)。该模式正是为解决资源频繁分配、释放所造成的问题。数据库连接池的基本思想就是为数据库连接建立一个“缓冲池”。预先在缓冲池中放入一定数量 的连接，当需要建立数据库连接时，只需要从缓冲池中取出一个了，使用完毕后再放回去。我们可以通过设定连接池最大数来防止系统无尽的与数据库连接。更为重要的是我们可以通过连接池的管理机制监视数据库连接使用数量，使用情况，为系统开发，测试以及性能调整提供依据。
+二、连接池
+2.1连接池的工作原理
+
+数据库连接池的基本原理是在内部对象池中维护一定数量的数据库连接，并对外暴露数据库连接获取和返回方法。外部使用者可通过getConnection 方法获取连接，使用完毕后再通过releaseConnection 方法将连接返回，注意此时连接并没有关闭，而是由连接池管理器回收，并为下一次使用做好准备。
+
+连接池工作原理
+2.2连接池的优点（摘自网络）
+
+a.资源重用
+
+由于数据库连接得到重用，避免了频繁创建、释放连接引起的大量性能开销。在减少系统消耗的基础上，另一方面也增进了系统运行环境的平稳性（减少内存碎片以及数据库临时进程/线程的数量）。
+
+b.更快的系统响应速度
+
+数据库连接池在初始化过程中，往往已经创建了若干数据库连接置于池中备用。此时连接的初始化工作均已完成。对于业务请求处理而言，直接利用现有可用连接，避免了数据库连接初始化和释放过程的时间开销，从而缩减了系统整体响应时间。
+
+c.新的资源分配手段
+
+对于多应用共享同一数据库的系统而言，可在应用层通过数据库连接的配置，实现数据库连接池技术。某一应用最大可用数据库连接数的限制，避免某一应用独占所有数据库资源。
+
+d.统一的连接管理，避免数据库连接泄漏
+
+在较为完备的数据库连接池实现中，可根据预先的连接占用超时设定，强制收回被占用连接。从而避免了常规数据库连接操作中可能出现的资源泄漏。
+2.3常用的数据库连接池技术
+
+目前较为常用的数据库连接池技术主要有C3P0和DBCP。
+三、java数据库连接池技术简单使用
+
+下面就C3P0演示java数据库连接池技术的简单使用。
+
+a.下载C3P0的jar包；
+
+这一类技术操作中各种jar包的导入一直是个很重要的问题，包括jar包的版本，路径等等问题，值得引起足够的重视。
+
+b.将jar包导入eclipse；
+
+c.细节处理（其他的直接看源代码即可）
+
+源码分享：
+
+package javaFile;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import com.mchange.v2.c3p0.ComboPooledDataSource;
+
+public class RedisC3P0Test {
+　　 //前提是已经创建了该数据库表
+    String url = "jdbc:mysql://localhost:3306/mysql";
+    String userName = "root";
+    String className = "com.mysql.jdbc.Driver";
+    String password = "123";
+    public static ComboPooledDataSource cpd = null;
+
+    // 构造器
+    public void CreateCpd() {
+        //创建ComboPooledDataSource对象
+        cpd = new ComboPooledDataSource();//千万注意此处不能写为：ComboPooledDataSource　cpd = new ComboPooledDataSource();
+        cpd.setUser(userName);//用户名
+        cpd.setPassword(password);//密码
+        cpd.setJdbcUrl(url);//数据库地址
+        cpd.setInitialPoolSize(10);//初始化连接数
+        cpd.setMinPoolSize(1);//最小连接数
+        cpd.setMaxPoolSize(100);//最大连接数
+        cpd.setMaxStatements(50);//最长等待时间
+        cpd.setMaxIdleTime(60);//最长空闲时间
+        try {
+            cpd.setDriverClass(className);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        /*System.out.println("init cpd:" + cpd);*/
+    }
+
+    // 创建一个对象
+    private static RedisC3P0Test instance = null;
+
+    // 判断并创建对象
+    public static RedisC3P0Test getInstance() {
+        if (instance == null) {
+            instance = new RedisC3P0Test();
+        }
+        return instance;
+    }
+
+    // 获取连接对象
+    public Connection getConneciton() throws SQLException {
+        // 注意返回值
+        return cpd.getConnection();
+    }
+
+    public static void main(String[] args) throws SQLException {
+        //获取程序开始的时间
+        long begintime = System.currentTimeMillis();
+        
+        new RedisC3P0Test().CreateCpd();
+        for (int i = 0; i < 10; i++) {
+            /*System.out.println("cpd=" + cpd);*/
+            Connection conn =RedisC3P0Test.getInstance().getConneciton();
+            //访问数据库mysql/mytest
+            Statement stm=conn.createStatement();
+            ResultSet rs=stm.executeQuery("select * from mytest");
+            while(rs.next()){
+                System.out.println(rs.getString("id")+"  "+rs.getString("name")+"  "+rs.getString("time_created"));
+                long endtimei = System.currentTimeMillis();
+                System.out.println("第"+(i+1)+"次访问所需时间:"+(endtimei-begintime)+"ms");
+            }
+            
+            /*PreparedStatement pstmt = (PreparedStatement) conn.prepareStatement("select * from event");
+            ResultSet rs = pstmt.executeQuery();
+            while(rs.next()){
+                System.out.println(rs.getString("id")+"  "+rs.getString("name")+"  "+rs.getString("time_created"));
+            }*/
+            /*System.out.println("conn is " + conn);*/
+            //资源关闭
+            conn.close();
+        }
+        // 获取程序结束时间
+        long endtime = System.currentTimeMillis();
+        //计算得出访问数据库的时间
+        System.out.println("连接数据库所需时间为:" + (endtime - begintime)+"ms");
+    }
+
+}
+
+执行结果如下（数据表中只有一条记录）:
+
+1  gaoziqiang  2016-09-14 08:06:34.0
+第1次访问所需时间:757ms
+1  gaoziqiang  2016-09-14 08:06:34.0
+第2次访问所需时间:759ms
+1  gaoziqiang  2016-09-14 08:06:34.0
+第3次访问所需时间:761ms
+1  gaoziqiang  2016-09-14 08:06:34.0
+第4次访问所需时间:763ms
+1  gaoziqiang  2016-09-14 08:06:34.0
+第5次访问所需时间:770ms
+连接数据库所需时间为:770ms
+
+四、相关文档资料
+
+C3P0连接池的使用详解
+
+
+
+
+

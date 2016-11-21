@@ -1,0 +1,8 @@
+org/jboss/weld/examples/login/EJBUserManager.class
+org/jboss/weld/examples/login/Credentials.class
+org/jboss/weld/examples/login/UserManager.class
+org/jboss/weld/examples/login/LoggedIn.class
+org/jboss/weld/examples/login/User.class
+org/jboss/weld/examples/login/Login.class
+org/jboss/weld/examples/login/ManagedBeanUserManager.class
+org/jboss/weld/examples/login/Resources.class

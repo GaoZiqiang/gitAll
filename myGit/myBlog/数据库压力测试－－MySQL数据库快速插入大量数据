@@ -1,0 +1,119 @@
+一、前言
+--
+应本次数据库压力测试的要求，测试数据记录至少为千万级，所以，问题来了，如何快速插入大量数据.
+
+二、解决方法一
+-------
+第一种解决方法是在MySQL终端中实现的，具体方法如下.
+a.打开MySQl数据库;
+
+> mysql -u root -p
+
+b.创建数据库;
+
+> mysql> create database insertData;
+ 
+> use insertData;
+
+```
+create CREATE TABLE InsertTable (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(50) default NULL,
+PRIMARY KEY (`id`)
+) ENGINE=MEMORY DEFAULT CHARSET=utf8;(PS:本数据库为MySQl的内存数据库)
+```
+c.创建插入数据的“函数”;
+
+```
+mysql> delimiter @//可实现多行命令的输入，作用很大
+create procedure insert_InsertTable(in item integer)//类似于函数参数列表
+begin
+declare counter int;
+set counter = item;
+while counter >= 1 do
+insert into myisam values(counter,concat('Record.',counter));
+set counter = counter - 1;
+end while;
+end
+@
+```
+d.调用该函数(比如插入10 000 000条测试数据);
+
+```
+delimiter @//不可省
+call insert_InsertTable(100);
+@
+```
+e.然后使用命令查看是否成功插入数据;
+
+> select count(*) from InserTable;
+
+三、解决方法二
+-------
+
+通过使用可知，上文中的方法一显然太过于麻烦，现在考虑将上文中的InsertTable函数写到一个.sql文件，直接调用命令就能实现将数据插入MySQL数据库.将数据库的创建、数据表的创建、数据的插入一步实现
+具体实现如下:
+a.创建.sql文件insert_data.sql;
+```
+drop database if exists insertData;
+create database insertData;
+use insertData;
+
+SET max_heap_table_size = 1024*1024*2000;//必要的配置，为MySQL分配更大的内存，便于存储
+CREATE TABLE InsertTable (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(50) default NULL,
+PRIMARY KEY (`id`)
+) ENGINE=MEMORY DEFAULT CHARSET=utf8;
+
+
+delimiter @
+create procedure insert_InsertTable(in item integer)
+begin
+declare counter int;
+set counter = item;
+while counter >= 1 do
+insert into InsertTable values(counter,concat('Record.',counter));
+set counter = counter - 1;
+end while;
+end
+@
+
+delimiter @
+call insert_InsertTable(10000000);
+@
+```
+b.调用.sql文件;
+
+> `mysql -u root -p <insert_data.sql`
+
+c.查数据是否插入;
+
+> select count(*) from InsertTable;
+
+
+
+
+四、其他问题
+------
+
+4.1imiter @ @的作用
+可以实现在终端执行多次命令，避免回车的影响.
+4.2查看存储数据量命令
+
+> select count(*) from InserTable;
+
+4.3删除数据表中的数据命令
+
+> truncate TableName;
+或者
+> delete from TableName;
+
+五、待优化问题
+-------
+5.1如何插入随机数
+5.2如何插入多种数据类型的数据
+5.3如何插入多条字段的数据
+
+
+

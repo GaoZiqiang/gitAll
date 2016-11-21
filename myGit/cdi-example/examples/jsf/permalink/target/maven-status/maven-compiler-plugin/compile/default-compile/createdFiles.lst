@@ -1,0 +1,8 @@
+org/jboss/weld/examples/permalink/Blog.class
+org/jboss/weld/examples/permalink/CommentBoard.class
+org/jboss/weld/examples/permalink/Repository.class
+org/jboss/weld/examples/permalink/Comment.class
+org/jboss/weld/examples/permalink/BlogEntryRepository.class
+org/jboss/weld/examples/permalink/BlogEntryRepository$1.class
+org/jboss/weld/examples/permalink/BlogEntry.class
+org/jboss/weld/examples/permalink/Users.class

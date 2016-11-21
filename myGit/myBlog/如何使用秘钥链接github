@@ -1,0 +1,82 @@
+一、前言
+----
+
+1.1 设置ssh的原因
+
+我们在用github管理项目的时候，可以使用https url克隆到本地，也可以使用 SSH url 克隆到本地.然而，为什么绝大多数人会使用https url克隆呢？
+这是因为，使用https url克隆对初学者来说会比较方便，复制https url 然后到 git Bash 里面直接用clone命令克隆到本地就好了。而使用 SSH url 克隆却需要在克隆之前先配置和添加好 SSH key .
+因此，如果你想要使用 SSH url 克隆的话，你必须是这个项目的拥有者.否则你是无法添加 SSH key 的.
+1.2 二者区别
+
+（1）前者可以随意克隆github上的项目，而不管是谁的；而后者则是你必须是你要克隆的项目的拥有者或管理员，又因为我们的本地Git仓库和GitHub仓库之间的传输是通过SSH加密的，所以，需要先添加 SSH key ，否则无法克隆.
+
+（2）https url 在push的时候是需要验证用户名和密码的；而 SSH 在push的时候，是不需要输入用户名的，如果配置SSH key的时候设置了密码，则需要输入密码的，否则直接是不需要输入密码的.
+
+二、在github上添加ssh key的步骤
+----------------------
+
+第１步　秘钥对——两个文件
+
+a.检查你是否有.ssh目录，它在你的主目录下;
+
+b.如果你的主目录下有.ssh目录，查看旗下的两个文件：id_rsa和id_rsa.pub.这就是ssh的秘钥对，前者为私钥，当然不可泄露，后者为公钥.
+
+第2步　添加ssh到github上去
+
+a.登陆github；
+
+b.打开Settings（位于右上角）；
+
+c.点击SSH Keys界面；
+
+d.创建SSH Keys（点击New SSH key）；
+
+e.填上任意Tile；
+
+f.在Key文本框粘贴id_rsa.pub文件中的内容（复制粘贴上就可）；
+
+g.最后点击Add Key，然后就会看到你添加的Key了.
+
+第３步　测试一下你的SSH Key
+
+a.在你的终端输入一下代码
+
+> gaohan@gaohan-Lenovo-G50-70:~$ ssh -T git@github.com
+
+b.紧接着出现一段警告
+
+```
+The authenticity of host 'github.com (192.30.252.131)' can't be established.
+```
+
+```
+RSA key fingerprint is SHA256:nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8.
+```
+
+```
+Are you sure you want to continue connecting (yes/no)? yes
+```
+
+选择yes（注意不是y!）
+
+c.当出现一下内容时，就算是大功告成了。
+
+```
+Warning: Permanently added 'github.com,192.30.252.131' (RSA) to the list of known hosts.
+```
+
+```
+Hi gaohanyagapohan! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+
+----------
+
+
+三、链接gogs
+--------
+
+如何使用秘钥链接gogs，这一个的步骤和github基本一样，在这就不作解释.
+
+
+s

@@ -1,0 +1,226 @@
+一、原理解释
+------
+
+先上图
+![流程图](http://img.blog.csdn.net/20161105142727959)
+解释图（只解释Java部分）
+Json数据解析工作流程文字解读：获取Json对象(Json Object)，解析为Java对象(Java Object)(比如存入Map,List,在这里我们是将Json对象解析为一个Class类)，然后读取该Java对象(Java Object)即可.
+
+二、导入jar包
+--------
+
+需要导入几个符合版本要求的jar包.
+先上图
+![Json需要的jar包](http://img.blog.csdn.net/20161105142848963)
+分为以下几类:
+a.Redis数据库的驱动Jedis
+jedis-2.5.2.jar
+b.解析JSon数据需要的jar包
+json-lib-2.4-jdk15.jar、jackson-core-asl-1.9.13.jar、jackson-mapper-asl-1.9.13.jar
+
+三、编写实例类
+-------
+
+先上图
+![Json实现类](http://img.blog.csdn.net/20161105142908976)
+
+**a.编写Redis读取类**
+
+编写ClientRedis类，连接Redis数据库，读取数据库里的Json对象(Json Object)，调用JsonAnalysis类的readValue()方法，将Json对象(Json Object)解析为Java对象(Java Object)并转换为String类型的数据输出.
+上代码
+
+```
+package cn.edu.sdut.json.analysis;
+
+/*@Author GaoZiqiang
+ * date:2016-11-03
+ * 作用:实现从Redis数据库读取Json数据并解析输出
+ * */
+import redis.clients.jedis.Jedis;
+
+/*从数据库读取Json数据并解析
+ * 涉及到Redis数据库连接，数据读取，Json数据解析
+ * */
+public class ClientRedis {
+    private static Jedis client;
+
+    public static void main(String[] args) {
+        new ClientRedis().setRelation();
+        new ClientRedis().jsonAnalysis();
+    }
+
+    // 与Redis数据库建立连接
+    public void setRelation() {
+        try {
+            String host = "127.0.0.1";
+            int port = 6379;
+            if (client == null) {
+                client = new Jedis(host, port);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 数据读取与解析操作
+    public void jsonAnalysis() {
+        try {
+
+            // 输出json数据jsonData
+            String jsonData = client.get("gao");
+            System.out.println("读取并输出Redis内Json数据:\n" + jsonData);
+            // 调用readValue()方法，解析该json数据为String数据stringData，并输出
+            JsonConversion stringData = JsonAnalysis.readValue(jsonData, JsonConversion.class);
+            System.out.println("解析并输出Json数据:\n" + stringData);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+```
+**b.编写解析类**
+编写JsonAnalysis类调用jackson.map.ObjectMapper的readValue()方法，结合泛型方法，把Json对象(Json Object)转换为相应的Java对象(Java Object)，在这里我们选择将Json对象(Json Object)解析转换为特定类型的Json对象(Json Object)即Student[].class类型.
+上代码
+
+```
+package cn.edu.sdut.json.analysis;
+
+/*@Author GaoZiqiang
+ *date:2016-11-03
+ * 作用:实现不同数据类型与json数据的相互转化
+ * */
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.PropertyNamingStrategy;
+
+public class JsonAnalysis {
+
+    static ObjectMapper objectMapper;
+
+    /**
+     * 使用泛型方法，把json字符串转换为相应的JavaBean对象。
+     * (1)转换为普通JavaBean：readValue(json,Student.class)
+     * (2)转换为List:readValue(json,List
+     * .class).但是如果我们想把json转换为特定类型的List，比如List<Student>，就不能直接进行转换了。
+     * 因为readValue(json
+     * ,List.class)返回的其实是List<Map>类型，你不能指定readValue()的第二个参数是List<
+     * Student>.class，所以不能直接转换。
+     * 我们可以把readValue()的第二个参数传递为Student[].class.然后使用Arrays
+     * .asList();方法把得到的数组转换为特定类型的List。 
+     * (3)转换为Map：readValue(json,Map.class)
+     * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;我们使用泛型，得到的也是泛型
+     *
+     * @param content
+     *            要转换的JavaBean类型
+     * @param valueType
+     *            原始json字符串数据
+     * @return JavaBean对象
+     */
+    // 解析Json数据并转化为JavaBean对象
+    public static <T> T readValue(String content, Class<T> valueType) {
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+        }
+        try {
+            return objectMapper.readValue(content, valueType);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
+     * 把JavaBean转换为json字符串 (1)普通对象转换：toJson(Student) (2)List转换：toJson(List)
+     * (3)Map转换:toJson(Map) 我们发现不管什么类型，都可以直接传入这个方法
+     *
+     * JavaBean对象
+     * 
+     * @param object
+     * @return json字符串
+     */
+    // 转化为json数据
+    public static String toJSon(Object object) {
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+        }
+        try {
+            objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+            return objectMapper.writeValueAsString(object);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+}
+```
+**c.编写转化类**
+编写JsonConversion类，通过toString()方法实现将Json对象(Json Object)即Student[].class内的符合Java常规的String类型数据输出.
+上代码
+
+```
+package cn.edu.sdut.json.analysis;
+
+/*@Author GaoZiqiang
+ * date:2016-11-03
+ * 作用:实现接受Json解析后的数据
+ * */
+public class JsonConversion {
+    // 设置属性
+    public String name;
+    public int age;
+
+    // 构造器
+    public JsonConversion() {
+
+    }
+
+    // getter和setter方法
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    /*
+     * 具体实现方法 转化为String字符串
+     */
+    @Override
+    public String toString() {
+        return "Person [name=" + name + ", age=" + age + "]";
+    }
+
+}
+```
+
+四、程序运行流程及结果
+-----------
+
+编译运行即可.
+程序运行结构如下:
+
+```
+ 读取并输出Redis内Json数据:
+    {"name":"gaoziqiang","age":123}
+    解析并输出Json数据:
+    Person [name=gaoziqiang, age=123]
+```
+上图
+![结果图](http://img.blog.csdn.net/20161105144102465)
+
+
+

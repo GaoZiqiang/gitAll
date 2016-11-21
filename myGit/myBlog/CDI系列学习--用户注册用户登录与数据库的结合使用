@@ -1,0 +1,468 @@
+#前言
+--
+自从今年暑假学习了JSF之后就一直想自己实现用户注册、用户登录的全部代码，鉴于当时还没有学习数据库的相关知识，JSF学习地并不深入，这件事便一直被搁置了下来.近几周学习了新的CDI，便决定结合使用CDI、数据库来完成这件事.
+注：本文重点强调的是“用户注册用户登录与数据库的结合使用”，所以对于CDI的工作原理不作过多的解释 .
+#分析
+--
+###**关系图如下:**
+![LoginRegister](http://img.blog.csdn.net/20161116142040774)
+#具体实践--前端页面
+----------
+##**说明**
+鉴于本人对于前端的学习有限，很多前端页面的设计也仅仅是出于“能够表达个人意图的”的目的，很多理论或者说法很low，有错误之处还望指正，不喜勿喷.
+##**步骤如下**
+###*a.注册页面*
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core">
+<h:head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>welcome to 314Room</title>
+	<!-- css style partly from: http://www.coreservlets.com/JSF-Tutorial/jsf2 -->
+	<link href="css/styles.css" rel="stylesheet" type="text/css" />
+	<link href="css/table-styles.css" rel="stylesheet" type="text/css" />
+	<style>
+#header {
+	background-color: black;
+	color: white;
+	text-align: center;
+	padding: 5px;
+}
+
+#nav {
+	line-height: 30px;
+	background-color: #eeeeee;
+	height: 300px;
+	width: 100px;
+	float: left;
+	padding: 5px;
+}
+
+#section {
+	width: 350px;
+	float: left;
+	padding: 10px;
+}
+
+#footer {
+	background-color: black;
+	color: white;
+	clear: both;
+	text-align: center;
+	padding: 5px;
+}
+
+span {
+	padding-right: 10px;
+	width: 4em;
+	display: block;
+	float: left;
+	line-height: 26px;
+}
+</style>
+</h:head>
+<h:body>
+	<div id="header">
+		<h1>欢迎来到XXX大酒店</h1>
+	</div>
+	<ul id="nav">
+		<li><a href="./index.xhtml">首页</a></li>
+		<li><a href="./login.xhtml">用户登录</a></li>
+		<li><a href="./reservation.xhtml">房间查询</a></li>
+		<li><a href="">关于我们</a></li>
+	</ul>
+	<div id="section">
+		<h2>用户注册</h2>
+		<p>
+			<h:form>
+				<fieldset>
+					<legend>用户注册</legend>
+					<span>用户名：</span>
+					<h:inputText name="username" value="#{loginController.username}"
+						size="10" />
+					<br /> <span>密码：</span>
+					<h:inputText name="password" value="#{loginController.password}"
+						size="10" />
+					<br />
+					<h:commandButton value="确认注册" action="#{loginController.register}" />
+				</fieldset>
+			</h:form>
+		</p>
+	</div>
+	<div id="footer">Copyright@ softlab.com</div>
+
+</h:body>
+</html>
+```
+
+###*b.登录页面*
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<h:head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>welcome to 314Room</title>
+	<!-- css style partly from: http://www.coreservlets.com/JSF-Tutorial/jsf2 -->
+	<link href="css/styles.css" rel="stylesheet" type="text/css" />
+	<link href="css/table-styles.css" rel="stylesheet" type="text/css" />
+	<style>
+#header {
+	background-color: black;
+	color: white;
+	text-align: center;
+	padding: 5px;
+}
+
+#nav {
+	line-height: 30px;
+	background-color: #eeeeee;
+	height: 300px;
+	width: 100px;
+	float: left;
+	padding: 5px;
+}
+
+#nav ul li a {
+	width: 80px; /*设置元素宽为80px*/
+	height: 28px; /*设置高度为28px*/
+	line-height: 28px; /*设置行距为28px，让文字在每行的中间位置*/
+	background: red; /*设置元素的背景为红色*/
+	color: #FFF; /*文字颜色是白色*/
+	margin: 5px 10px;
+	font-size: 12px; /*用12号字*/
+	display: block;
+	/*这个比较关键，因为a本身就是联级元素，本身不具有宽高，用这个把它变成块级元素，这样前面设置的宽和高就能起作用了*/
+	text-align: center; /*让文本居中*/
+	text-decoration: none; /*去掉下划线*/
+}
+
+#section {
+	width: 350px;
+	float: left;
+	padding: 10px;
+}
+
+#footer {
+	background-color: black;
+	color: white;
+	clear: both;
+	text-align: center;
+	padding: 5px;
+}
+
+span {
+	padding-right: 10px;
+	width: 4em;
+	display: block;
+	float: left;
+	line-height: 26px;
+}
+</style>
+</h:head>
+<h:body>
+	<div id="header">
+		<h1>欢迎来到XXX大酒店</h1>
+	</div>
+	<ul id="nav">
+		<li><a href="./index.xhtml">首页</a></li>
+		<li><a href="./login.xhtml">用户登录</a></li>
+		<li><a href="./reservation.xhtml">房间查询</a></li>
+		<li><a href="./aboutus.xhtml">关于我们</a></li>
+	</ul>
+	<div id="section">
+		<h2>用户登录</h2>
+		<p>
+			<h:form>
+				<fieldset>
+					<legend>用户登录</legend>
+					<span>用户名：</span>
+					<h:inputText name="username" value="#{loginController.username}"
+						size="10" />
+					<br /> <span>密码：</span>
+					<h:inputText name="password" value="#{loginController.password}"
+						size="10" />
+					<br />
+					<h:commandButton value="登录" action="#{loginController.login}" />
+					<h:link value="还未注册？先注册" outcome="register.xhtml" />
+
+
+					<ui:remove>
+						<h:commandButton value="登录" action="#{loginController.register}" />
+					</ui:remove>
+				</fieldset>
+			</h:form>
+		</p>
+	</div>
+	<div id="footer">copyright@ softlab.com</div>
+
+</h:body>
+```
+
+</html>
+###*c.错误警示页面*
+不展示了
+
+#具体实践--逻辑处理
+----------
+##**本部分包括三大块**
+1.CDI
+2.MySQL数据库
+3.wildfly服务器
+具体原理就不展开解释了，太麻烦.重点说明注册登录与数据库的内容.
+##**步骤如下:**
+###*a.创建数据库*
+创建数据库CdiDb，数据表signupTable.
+###*b.注册、登录的Controller类*
+
+```
+package cn.edu.sdut.softlab;
+
+/**
+
+* 注册、登录的Controller类
+
+* @author GaoZiqiang
+
+* @Time 2016-11-10
+
+*
+
+*/
+import java.sql.SQLException;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
+import javax.inject.Named;
+
+@SuppressWarnings("restriction")
+@Named
+@RequestScoped
+public class LoginController {
+	// username password属性
+	private String username;
+	private String password;
+
+	// getter setter方法
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	// 对象注入
+	@Inject
+	@MySQL
+	DepositMySQL mysql;
+
+	@PostConstruct
+	public void init() {
+		System.out.println("wildfly from eclipce is posting construct......");
+	}
+
+	@PreDestroy
+	public void destroy() {
+		System.out.println("wildfly from eclipse is preing destroy......");
+	}
+
+	// 用户注册
+	public String register() {
+		mysql.depositMySQL(username, password);
+		return "reservation";
+	}
+
+	// 用户登录
+	public String login() throws ClassNotFoundException, SQLException {
+		return mysql.userAuthentication(username, password);
+	}
+
+}
+```
+
+###*c.注册、登录的具体实现（也就是与数据库的结合）*
+
+```
+package cn.edu.sdut.softlab;
+
+/**
+
+* 注册、登录的Controller类
+
+* @author GaoZiqiang
+
+* @Time 2016-11-10
+
+*
+
+*/
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import com.mysql.jdbc.Connection;
+import com.mysql.jdbc.Statement;
+
+@MySQL
+public class DepositMySQL {
+	Connection conn = null;
+
+	// 与MySQL数据库建立连接
+	public void setRelation() throws ClassNotFoundException, SQLException {
+		// MySQL数据库的URL
+		String url = "jdbc:mysql://localhost:3306/CdiDb?user=root&password=123";
+		// 注册JDBC驱动程序
+		Class.forName("com.mysql.jdbc.Driver");
+		// 打开一个连接
+		System.out.println("connecting to database...");
+		conn = (Connection) DriverManager.getConnection(url);
+		// 执行一个查询
+		System.out.println("Creating statement...");
+		// 打印输出conn，看是否创建成功
+		System.out.println(conn);
+	}
+
+	// 将用户信息存入数据库--注册
+	public void depositMySQL(String username, String password) {
+		// setRelation
+		try {
+			try {
+				setRelation();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			Statement stm = (Statement) conn.createStatement();
+			// 需要完善：判断用户是否已经注册，需要对代码进行完善，代码冗余严重
+			String sqlIn = "insert into signupTable (username,password) values ('" + username + "','" + password + "')";
+			System.out.println(sqlIn);
+			// 打印输出sql语句查看insert与具备是否正确
+			stm.executeUpdate(sqlIn);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			System.out.println("已经成功将用户" + username + "的信息存入数据库");
+		}
+	}
+
+	// 将用户信息从数据库取出--denglu
+	public String userAuthentication(String username, String password) throws ClassNotFoundException, SQLException {
+		// 以此决定返回哪个界面
+		String flag = null;
+		// setRelation
+		try {
+			try {
+				setRelation();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		}
+
+		Statement stm = (Statement) conn.createStatement();
+		String sqlSelect = "select * from signupTable where username = '" + username + "'";
+		ResultSet rst = stm.executeQuery(sqlSelect);
+		System.out.println(sqlSelect);
+
+		if (rst.next()) {// 若用户名存在，则比较密码
+			if (rst.getString("password").equals(password)) {
+				System.out.println("登录成功");
+				flag = "reservation";
+			} else {
+				System.out.println("密码错误");
+				flag = "passwderror";
+			}
+		} else {// 如果没有用户名就提示没有
+			System.out.println("该用户不存在");
+			flag = "nouser";
+		}
+
+		return flag;
+	}
+
+}
+```
+###*d.对象声明类*
+
+```
+package cn.edu.sdut.softlab;
+
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.ElementType.TYPE;
+import java.lang.annotation.Retention;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import java.lang.annotation.Target;
+import javax.inject.Qualifier;
+
+/**
+ * 
+ * 注册、登录的Controller类
+ * 
+ * @author GaoZiqiang
+ * 
+ * @Time 2016-11-10
+ *
+ * 
+ * 
+ */
+@Qualifier
+@Target({ TYPE, METHOD, FIELD, PARAMETER })
+@Retention(RUNTIME)
+public @interface MySQL {
+
+}
+```
+
+#总结
+--
+###**重点强调:**
+在使用代码为数据库插入数据时对已SQL语句的设计遇到了很多问题，最终得以解决，如下:
+
+```
+String sqlIn = "insert into signupTable (username,password) values ('" + username + "','" + password + "')";
+```
+
+```
+tring sqlSelect = "select * from signupTable where username = '" + username + "'";
+```
+
+#待优化
+---
+1.CDI的事务逻辑处理不够成熟;
+2.数据库的连接.
+
+
+
